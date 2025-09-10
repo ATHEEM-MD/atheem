@@ -8,12 +8,9 @@ import Pino from 'pino';
 import qrcode from 'qrcode-terminal';
 import { Boom } from '@hapi/boom';
 
-export async function connect() {
-  // Sehemu ya kuhifadhi sessions
-  const { state, saveCreds } = await useMultiFileAuthState('./atheem-sessions');
+async function connect() {
+  const { state, saveCreds } = await useMultiFileAuthState('./sessions');
   const { version } = await fetchLatestBaileysVersion();
-
-  // Socket ya WhatsApp
   const sock = makeWASocket({
     version,
     logger: Pino({ level: 'silent' }),
@@ -22,45 +19,49 @@ export async function connect() {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: 'silent' })),
     },
-    browser: ['ATHEEM BOT','Chrome','120'], // 👈 Imebadilishwa iwe yako
+    browser: ['ATHEEM-MD','Chrome','120'],
   });
 
-  // Save credentials
   sock.ev.on('creds.update', saveCreds);
 
-  // Connection updates
   sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
+    const { connection, lastDisconnect, qr, pairingCode } = update;
 
     if (qr) {
-      console.log('📱 Scan QR above or wait for Pairing Code...');
+      console.log('📱 Scan this QR to login:');
     }
 
-    if (update.pairingCode) {
-      console.log('🔑 Your Pairing Code:', update.pairingCode);
+    if (pairingCode) {
+      console.log('🔑 Pairing Code:', pairingCode);
       console.log('👉 Open WhatsApp > Linked Devices > Pair with code');
     }
 
     if (connection === 'close') {
       const shouldReconnect = (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut);
+      console.log("❌ Connection closed. Reconnecting...", shouldReconnect);
       if (shouldReconnect) connect();
     } else if (connection === 'open') {
-      console.log('✅ ATHEEM BOT Connected Successfully!');
+      console.log('✅ Connected to WhatsApp!');
     }
   });
 
-  // Pairing Code Mode
+  // If no creds yet, request a pairing code instead of QR
   if (!state.creds.registered) {
     const phoneNumber = process.env.NUM || '';
     if (!phoneNumber) {
-      console.log('⚠️ To use pairing code, run:');
-      console.log('NUM=2557XXXXXXXX node index.js'); // 👈 Number yako Tanzania
+      console.log('⚠️ To use pairing code, set env variable: NUM=2557XXXXXXXX');
     } else {
       const code = await sock.requestPairingCode(phoneNumber);
-      console.log('🔑 Your Pairing Code:', code);
+      console.log('🔑 Pairing Code:', code);
       console.log('👉 Open WhatsApp > Linked Devices > Pair with code');
     }
   }
 
   return sock;
 }
+
+// start bot
+connect().catch(err => console.error("❌ Error:", err));
+
+// keep process alive on Render
+setInterval(() => {}, 1000 * 60 * 60);
