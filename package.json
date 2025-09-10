@@ -1,16 +1,19 @@
 {
-  "name": "pairing-code-generator",
+  "name": "atheem-md",
   "version": "1.0.0",
-  "description": "WhatsApp Pairing Code Generator using Baileys",
+  "description": "ATHEEM-MD WhatsApp Bot powered by Baileys",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "type": "module",
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.6.0",
-    "@hapi/boom": "^10.0.0",
-    "pino": "^8.0.0",
-    "qrcode-terminal": "^0.12.0"
-  }
+    "@whiskeysockets/baileys": "^6.17.16",
+    "pino": "^8.21.0",
+    "qrcode-terminal": "^0.12.0",
+    "@hapi/boom": "^10.0.1"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "license": "MIT"
 }
